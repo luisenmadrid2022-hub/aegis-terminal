@@ -1,0 +1,22 @@
+# Residuos de modding
+aegis-mod/
+aegis-mod-libs/
+termux-original.apk
+*.zip
+
+# Build outputs
+build/
+app/build/
+terminal-emulator/build/
+terminal-view/build/
+.idea/
+*.iml
+local.properties
+
+# Gradle
+.gradle/
+gradle/
+
+# OS
+.DS_Store
+Thumbs.db

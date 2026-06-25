@@ -1,0 +1,54 @@
+name: Build AEGIS Terminal APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Install NDK
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;27.0.12077973" 2>&1 | tail -5
+
+      - name: Build APK
+        run: |
+          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973
+          export TERMUX_PACKAGE_VARIANT=apt-android-7
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Sign APK
+        run: |
+          # Generate debug keystore for signing
+          keytool -genkey -v -keystore debug.keystore -alias aegis \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass aegis123 -keypass aegis123 \
+            -dname "CN=AEGIS, OU=Terminal, O=AEGIS, L=Unknown, ST=Unknown, C=XX"
+          $ANDROID_HOME/build-tools/*/apksigner sign \
+            --ks debug.keystore --ks-pass pass:aegis123 \
+            --ks-key-alias aegis \
+            --out aegis-terminal.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegis-terminal
+          path: aegis-terminal.apk
